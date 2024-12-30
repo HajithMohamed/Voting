@@ -34,6 +34,18 @@
               <input type="text" id="mobile" name="mobile" class="border border-gray-500 rounded p-2">
             </div>
             <div class="flex flex-col mt-2">
+              <label for="email">Email:</label>
+              <input type="email" id="email" name="email" class="border border-gray-500 rounded p-2">
+            </div>
+            <div class="flex flex-col mt-2">
+              <label for="password">Password:</label>
+              <input type="password" id="password" name="password" class="border border-gray-500 rounded p-2">
+            </div>
+            <div class="flex flex-col mt-2">
+              <label for="confirmPassword">Confirm Password:</label>
+              <input type="password" id="confirmPassword" name="confirmPassword" class="border border-gray-500 rounded p-2">
+            </div>
+            <div class="flex flex-col mt-2">
               <label for="dob">Date of Birth:</label>
               <input type="date" id="dob" name="dob" class="border border-gray-500 rounded p-2">
             </div>
@@ -73,6 +85,9 @@
           nic: $("#nic").val().trim(),
           adr: $("#adr").val().trim(),
           mobile: $("#mobile").val().trim(),
+          email: $("#email").val().trim(),
+          password: $("#password").val().trim(),
+          confirmPassword: $("#confirmPassword").val().trim(),
           dob: $("#dob").val(),
           pollingDivision: $("#pollingDivision").val()
         };
@@ -82,7 +97,8 @@
 
         // Validate fields (basic front-end validation)
         if (!formData.fName || !formData.lName || !formData.nic || !formData.adr || 
-            !formData.mobile || !formData.dob || !formData.pollingDivision) {
+            !formData.mobile || !formData.email || !formData.password || !formData.confirmPassword || 
+            !formData.dob || !formData.pollingDivision) {
           $("#error").removeClass("hidden").text("All fields are required!");
           return;
         }
@@ -94,6 +110,11 @@
 
         if (!/^\d{9}[VvXx]$/.test(formData.nic)) {
           $("#error").removeClass("hidden").text("NIC must be 9 digits followed by V, v, X, or x!");
+          return;
+        }
+
+        if (formData.password !== formData.confirmPassword) {
+          $("#error").removeClass("hidden").text("Passwords do not match!");
           return;
         }
 
