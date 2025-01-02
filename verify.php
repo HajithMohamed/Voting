@@ -6,93 +6,93 @@
     require 'vendor/autoload.php';
     require("config.php");
 
-
-    function verifyemail(){
-        //Create an instance; passing `true` enables exceptions
+    function verifyemail($name, $email, $otp) {
+        // Create an instance of PHPMailer
         $mail = new PHPMailer(true);
 
         try {
-            //Server settings
-            $mail->SMTPDebug = SMTP::DEBUG_SERVER;                      //Enable verbose debug output
-            $mail->isSMTP();                                            //Send using SMTP
-            $mail->Host       = 'smtp.example.com';                     //Set the SMTP server to send through
-            $mail->SMTPAuth   = true;                                   //Enable SMTP authentication
-            $mail->Username   = 'user@example.com';                     //SMTP username
-            $mail->Password   = 'secret';                               //SMTP password
-            $mail->SMTPSecure = PHPMailer::ENCRYPTION_SMTPS;            //Enable implicit TLS encryption
-            $mail->Port       = 465;                                    //TCP port to connect to; use 587 if you have set `SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS`
+            // Server settings
+            $mail->SMTPDebug = SMTP::DEBUG_OFF;                      // Disable verbose debug output
+            $mail->isSMTP();                                         // Use SMTP
+            $mail->Host       = 'smtp.gmail.com';                    // Gmail SMTP server
+            $mail->SMTPAuth   = true;                                // Enable SMTP authentication
+            $mail->Username   = SMTP_USERNAME;                       // Your Gmail address from config.php
+            $mail->Password   = SMTP_PASSWORD;                       // Your app-specific password from config.php
+            $mail->SMTPSecure = PHPMailer::ENCRYPTION_SMTPS;         // Use implicit TLS encryption
+            $mail->Port       = 465;                                 // SMTP port for TLS encryption
 
-            //Recipients
-            $mail->setFrom('from@example.com', 'Mailer');
-            $mail->addAddress('joe@example.net', 'Joe User');     //Add a recipient
-            $mail->addAddress('ellen@example.com');               //Name is optional
-            $mail->addReplyTo('info@example.com', 'Information');
-            $mail->addCC('cc@example.com');
-            $mail->addBCC('bcc@example.com');
+            // Recipients
+            $mail->setFrom(SMTP_FROM_EMAIL, SMTP_FROM_NAME);         // Sender's email and name from config.php
+            $mail->addAddress($email, $name);                        // Add recipient
+            $mail->addReplyTo(SMTP_REPLY_TO_EMAIL, SMTP_REPLY_TO_NAME); // Reply-to email and name from config.php
 
-            //Attachments
-            $mail->addAttachment('/var/tmp/file.tar.gz');         //Add attachments
-            $mail->addAttachment('/tmp/image.jpg', 'new.jpg');    //Optional name
+            // Email content
+            $mail->isHTML(true);                                     // Set email format to HTML
+            $mail->Subject = 'Email Verification';
+            $mail->Body    = "Dear $name,<br><br>Your OTP for email verification is: <b>$otp</b><br><br>Thank you!";
+            $mail->AltBody = "Dear $name,\n\nYour OTP for email verification is: $otp\n\nThank you!";
 
-            //Content
-            $mail->isHTML(true);                                  //Set email format to HTML
-            $mail->Subject = 'Here is the subject';
-            $mail->Body    = 'This is the HTML message body <b>in bold!</b>';
-            $mail->AltBody = 'This is the body in plain text for non-HTML mail clients';
-
+            // Send the email
             $mail->send();
-            echo 'Message has been sent';
         } catch (Exception $e) {
-            echo "Message could not be sent. Mailer Error: {$mail->ErrorInfo}";
+            // Handle error
         }
     }
 
+    $error_empty = false;
+    $error_mobile = false;
 
-$error_empty = false;
-$error_mobile = false;
+    if (isset($_POST["fName"])) {
+        $fname = trim($_POST["fName"]);
+        $lname = trim($_POST["lName"]);
+        $adr = trim($_POST["adr"]);
+        $mobile = trim($_POST["mobile"]);
+        $email = trim($_POST["email"]);
+        $gender = isset($_POST["gender"]) ? trim($_POST["gender"]) : ''; // Get value from radio button
+        $dob = trim($_POST["dob"]);
+        $province = trim($_POST["province"]);
+        $district = trim($_POST["pollingDivision"]);
+        $pollingDivisionDetails = trim($_POST["pollingDivisionDetails"]);
+        $NIC = trim($_POST["nic"]);
+        $otp = rand(100000, 999999); // Generate a 6-digit OTP
 
-if (isset($_POST["fName"])) {
-    $fname = trim($_POST["fName"]);
-    $lname = trim($_POST["lName"]);
-    $adr = trim($_POST["adr"]);
-    $mobile = trim($_POST["mobile"]);
-    $email = trim($_POST["email"]);
-    $gender = isset($_POST["gender"]) ? trim($_POST["gender"]) : ''; // Get value from radio button
-    $dob = trim($_POST["dob"]);
-    $province = trim($_POST["province"]);
-    $district = trim($_POST["pollingDivision"]);
-    $pollingDivisionDetails = trim($_POST["pollingDivisionDetails"]);
-    $NIC = trim($_POST["nic"]);
+        if (empty($fname) || empty($lname) || empty($adr) || empty($mobile) || empty($email) || empty($gender) || empty($dob) || empty($province) || empty($district) || empty($pollingDivisionDetails) || empty($NIC)) {
+            echo 'All fields are required!';
+            $error_empty = true;
+            exit;
+        }
+        if (!is_numeric($mobile) || strlen($mobile) !== 10) {
+            echo 'Mobile number must be numeric and 10 digits!';
+            $error_mobile = true;
+            exit;
+        }
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            echo 'Invalid email format!';
+            exit;
+        }
+        if (!preg_match('/^[0-9]{9}[VvXx]$/', $NIC)) {
+            echo 'Invalid NIC format! Must be 9 digits followed by V, v, X, or x.';
+            exit;
+        }
+        $duplicate = mysqli_query($conn, "SELECT * FROM user WHERE Nic='$NIC'");
 
-    if (empty($fname) || empty($lname) || empty($adr) || empty($mobile) || empty($email) || empty($gender) || empty($dob) || empty($province) || empty($district) || empty($pollingDivisionDetails) || empty($NIC)) {
-        echo 'All fields are required!';
-        $error_empty = true;
-        exit;
+        if (mysqli_num_rows($duplicate) == 0) {
+            $query = "INSERT INTO user(f_name, l_name, Nic, mobile, email, gender, dob, province, district, polling_div, address, otp)
+                      VALUES('$fname', '$lname', '$NIC', '$mobile', '$email', '$gender', '$dob', '$province', '$district', '$pollingDivisionDetails', '$adr', '$otp')";
+            $result = mysqli_query($conn, $query);
+            $name = $fname . ' ' . $lname;
+            if ($result) {
+                verifyemail($name, $email, $otp);
+                echo "Register Successful";
+            }
+        } else {
+            echo "This Record Already Exists!";
+        }
     }
-    if (!is_numeric($mobile) || strlen($mobile) !== 10) {
-        echo 'Mobile number must be numeric and 10 digits!';
-        $error_mobile = true;
-        exit;
+    else{
+        // Default response if accessed without POST data
+        echo 'Invalid request.';
     }
-    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        echo 'Invalid email format!';
-        exit;
-    }
-    if (!preg_match('/^[0-9]{9}[VvXx]$/', $NIC)) {
-        echo 'Invalid NIC format! Must be 9 digits followed by V, v, X, or x.';
-        exit;
-    }
-
-    $query = "INSERT INTO user(f_name, l_name, Nic, mobile, email, gender, dob, province, district, polling_div, address)
-              VALUES('$fname', '$lname', '$NIC', '$mobile', '$email', '$gender', '$dob', '$province', '$district', '$pollingDivisionDetails', '$adr')";
-    $result = mysqli_query($conn, $query);
-    if ($result) {
-        echo 'Register Successful';
-        exit;
-    }
-}
-
-// Default response if accessed without POST data
-echo 'Invalid request.';
-exit;
+    
+    exit;
 ?>

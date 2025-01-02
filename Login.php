@@ -145,7 +145,7 @@
             Swal.fire({
               icon: 'success',
               title: 'Success!',
-              text: 'Register Successful!',
+              text: 'Register Successful! You have received an email with a verification code. Please verify it is you. Thank you!',
               confirmButtonColor: '#3085d6',
               confirmButtonText: 'OK'
             }).then(() => {
